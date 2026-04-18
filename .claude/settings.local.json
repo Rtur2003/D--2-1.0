@@ -7,7 +7,8 @@
       "Bash(python src/cv_experiment.py)",
       "Bash(tee results/cv_run.log)",
       "Bash(python -c ' *)",
-      "WebFetch(domain:ieeexplore.ieee.org)"
+      "WebFetch(domain:ieeexplore.ieee.org)",
+      "Bash(python src/download_web_samples.py)"
     ]
   }
 }

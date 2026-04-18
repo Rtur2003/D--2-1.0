@@ -1,17 +1,21 @@
 # =========================================================================
-# MAIN PIPELINE - Tüm Proje Adımları
+# MAIN PIPELINE - Tum Proje Adimlari
 # =========================================================================
-# BM 480 Derin Öğrenme - Proje 2
+# BM 480 Derin Ogrenme - Proje 2
 # Head CT Hemorrhage Classification
 #
-# Kullanım:
-#   python main.py              → Tüm pipeline (tune + train + eval)
-#   python main.py --train      → Sadece eğitim
-#   python main.py --eval       → Sadece değerlendirme
-#   python main.py --tune       → Sadece hiperparametre tuning
-#   python main.py --app        → Arayüzü başlat
-#   python main.py --webcrawl   → Web-crawled görüntüleri test et
-#   python main.py --augpreview → Augmentation önizleme
+# Kullanim:
+#   python main.py              -> Tam pipeline (tune + train + eval + webcrawl)
+#   python main.py --train      -> Sadece egitim
+#   python main.py --eval       -> Sadece degerlendirme
+#   python main.py --tune       -> Sadece hiperparametre tuning
+#   python main.py --app        -> Arayuzu baslat
+#   python main.py --webcrawl   -> Web-crawled goruntuleri test et
+#   python main.py --augpreview -> Augmentation onizleme
+#   python main.py --diagrams   -> Akis semasi + mimari diyagramlari uret
+#   python main.py --threshold  -> Decision threshold analizi (medikal)
+#   python main.py --cv         -> Stratified 5-Fold Cross-Validation
+#   python main.py --features   -> GAP feature CSV cikarimi
 # =========================================================================
 
 import sys
@@ -45,6 +49,14 @@ def main():
                         help="Web-crawled test goruntuleri")
     parser.add_argument("--augpreview", action="store_true",
                         help="Augmentation onizleme")
+    parser.add_argument("--diagrams", action="store_true",
+                        help="Akis semasi + mimari diyagramlari uret")
+    parser.add_argument("--threshold", action="store_true",
+                        help="Decision threshold analizi (medikal)")
+    parser.add_argument("--cv", action="store_true",
+                        help="Stratified 5-Fold Cross-Validation")
+    parser.add_argument("--features", action="store_true",
+                        help="GAP feature CSV cikarimi")
     parser.add_argument("--all", action="store_true",
                         help="Tum pipeline (tune + train + eval)")
 
@@ -97,6 +109,30 @@ def main():
         from web_crawler import test_web_crawled_images
         test_web_crawled_images()
 
+    # ── Diagrams (akis semasi + mimari) ────────────────────────────
+    if args.diagrams:
+        print("\n[EXTRA] Akis semasi + mimari diyagramlari...")
+        from diagrams import make_all
+        make_all()
+
+    # ── Decision Threshold Analizi ────────────────────────────────
+    if args.threshold:
+        print("\n[EXTRA] Decision Threshold Analizi (medikal)...")
+        from threshold_analysis import run_threshold_analysis
+        run_threshold_analysis()
+
+    # ── 5-Fold Cross Validation ────────────────────────────────────
+    if args.cv:
+        print("\n[EXTRA] Stratified 5-Fold Cross-Validation...")
+        from cv_experiment import run_cv
+        run_cv()
+
+    # ── Feature Extraction (GAP CSV) ──────────────────────────────
+    if args.features:
+        print("\n[EXTRA] GAP Feature CSV cikarimi...")
+        from extract_features import extract_features_to_csv
+        extract_features_to_csv()
+
     # ── Interface ──────────────────────────────────────────────────
     if args.app:
         print("\n[APP] Gradio Arayuzu Baslatiliyor...")
@@ -129,6 +165,12 @@ def main():
             "custom_cnn_gradcam.png",
             "convnext_grid_search.png",
             "custom_cnn_grid_search.png",
+            "flow_chart.png",
+            "architecture_convnext.png",
+            "architecture_custom_cnn.png",
+            "decision_pipeline.png",
+            "threshold_analysis.png",
+            "cv_summary.png",
         ]
         for f in expected_files:
             path = RESULTS_DIR / f
