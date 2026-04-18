@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"import sys; sys.path.insert\\(0,'src'\\); from extract_features import extract_features_to_csv; extract_features_to_csv\\(\\)\")",
+      "Bash(python src/diagrams.py)",
+      "Bash(python src/threshold_analysis.py)",
+      "Bash(python src/cv_experiment.py)",
+      "Bash(tee results/cv_run.log)",
+      "Bash(python -c ' *)"
+    ]
+  }
+}
