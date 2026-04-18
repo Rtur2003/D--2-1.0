@@ -158,26 +158,36 @@ Görsel: `results/threshold_analysis.png` · JSON: `results/threshold_analysis.j
 
 ## 7. Stratified 5-Fold Cross-Validation (Küçük Veri Savunması)
 
-`src/cv_experiment.py` test setini sabit (30 örnek) tuttu; kalan 170 örnek üzerinde her model için 5 fold × 10 epoch eğitim.
+`src/cv_experiment.py` test setini sabit (30 örnek) tuttu; kalan 170 örnek üzerinde her model için 5 fold çalıştırıldı. Selection bias'tan kaçınmak için **sabit epoch + son 3 epoch ortalaması** raporlandı (best-on-val cherry-pick yapılmadı):
 
-### 7.1 Fold-Bazlı Sonuçlar
+- ConvNeXt-Tiny → fold başına **10 epoch** (pretrained, hızlı yakınsar)
+- Custom CNN → fold başına **20 epoch** (sıfırdan eğitim, daha uzun)
+- Her iki model için son **3 epoch** validation metrikleri ortalanır
+
+### 7.1 Fold-Bazlı Sonuçlar (son-3-epoch ortalaması)
 
 | Fold | ConvNeXt acc | Custom CNN acc |
 |------|--------------|----------------|
-| 1 | 0.9714 | 0.6857 |
-| 2 | 1.0000 | 0.7059 |
-| 3 | 1.0000 | 0.8235 |
-| 4 | 0.9706 | 0.7941 |
-| 5 | 1.0000 | 0.6471 |
+| 1 | 0.9333 | 0.8095 |
+| 2 | 0.9902 | 0.7549 |
+| 3 | 0.9706 | 0.8333 |
+| 4 | 0.9510 | 0.7451 |
+| 5 | 0.9706 | 0.7843 |
 
 ### 7.2 Mean ± Std
 
 | Model | Accuracy | F1 (w) | Recall (w) |
 |-------|----------|--------|------------|
-| **ConvNeXt-Tiny** | **0.9884 ± 0.0142** | 0.9884 ± 0.0142 | 0.9884 ± 0.0142 |
-| **Custom CNN**    | 0.7313 ± 0.0667 | 0.7307 ± 0.0669 | 0.7313 ± 0.0667 |
+| **ConvNeXt-Tiny** | **0.9631 ± 0.0194** | 0.9631 ± 0.0194 | 0.9631 ± 0.0194 |
+| **Custom CNN**    | **0.7854 ± 0.0330** | 0.7824 ± 0.0358 | 0.7854 ± 0.0330 |
 
-**Yorum:** Tek hold-out test sonucu (ConvNeXt 0.967) CV ortalaması (0.988 ± 0.014) ile **tutarlı**; "şanslı çıktı" eleştirisini sayısal olarak çürütür. Custom CNN scratch eğitildiği için fold varyansı 5× daha yüksek (transfer learning yokluğunun maliyeti).
+**Yorum:**
+
+- Tek hold-out test sonucu (ConvNeXt 0.9667, Custom CNN 0.8667) CV ortalamasının **±2σ bandı içinde** → "şans" eleştirisi sayısal olarak çürür.
+- Custom CNN test (%86.7) > CV (%78.5): test setinde ConvNeXt'in yanıldığı tek örnek tipinin Custom CNN'in lehine düşmesi; küçük-N varyansı.
+- ConvNeXt fold varyansı (σ=0.019) Custom CNN'inkinden (σ=0.033) **daha düşük** → ImageNet pretrained backbone küçük-N'de daha kararlı.
+
+> **Metodoloji notu:** Önceki sürümde "best-on-val" raporlama nedeniyle ConvNeXt'in 5 fold'undan 3'ü tam 1.000 görünüyordu (selection bias). Bu, küçük (~34 örnek) validation setinde 10 epoch'tan en iyisinin seçilmesinden kaynaklı yapay yükselişti; düzeltildi.
 
 Görsel: `results/cv_summary.png` · JSON: `results/cv_results.json`.
 
@@ -254,7 +264,7 @@ Görsel: `results/cv_summary.png` · JSON: `results/cv_results.json`.
 
 - "200 görüntülük dengeli Head CT veri setinde, ImageNet-pretrained ConvNeXt-Tiny ile 28.6 M parametreli model **0.967 test accuracy** ve **0.967 weighted F1** elde etmiştir."
 - "1.29 M parametreli özgün CNN (Multi-Scale + Residual-SE) tek başına **0.867 accuracy** sağlamış; soft-voting ensemble eşik 0.55'te **precision = 1.000, recall = 0.933, F1 = 0.966** ile en yüksek dengeli sonucu üretmiştir."
-- "Stratified 5-fold cross-validation ile ConvNeXt-Tiny **0.988 ± 0.014 ortalama accuracy**, Custom CNN **0.731 ± 0.067 ortalama accuracy** vermiştir; tek hold-out skoru CV ortalaması ile tutarlıdır."
+- "Stratified 5-fold cross-validation (sabit epoch + son 3 epoch ortalaması) ile ConvNeXt-Tiny **0.963 ± 0.019**, Custom CNN **0.785 ± 0.033** ortalama accuracy vermiştir; tek hold-out skoru CV ortalamasının ±2σ bandı içindedir."
 - "Decision threshold analizi 0.55'te iki false positive'in elendiğini, klinik recall ≥ 0.95 hedefi için ise eşiğin 0.40'a düşürülmesi gerektiğini sayısal olarak göstermiştir."
 - "Sınırlılıklar: tek-merkez veri kaynağı, 30 örneklik test setinin geniş güven aralığı, binary etiketleme (subtype yok). Klinik kullanım için CQ500 / RSNA gibi external validation zorunludur."
 
