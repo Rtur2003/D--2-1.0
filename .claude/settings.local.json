@@ -6,7 +6,8 @@
       "Bash(python src/threshold_analysis.py)",
       "Bash(python src/cv_experiment.py)",
       "Bash(tee results/cv_run.log)",
-      "Bash(python -c ' *)"
+      "Bash(python -c ' *)",
+      "WebFetch(domain:ieeexplore.ieee.org)"
     ]
   }
 }
