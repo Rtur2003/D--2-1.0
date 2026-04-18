@@ -752,6 +752,7 @@ SE her ResidualSE'in içine gömülü, ayrıca `SEBlock` sınıfı olarak tanım
 - **Olası soru — "Direkt 256→2 yapsan?"** Tek FC ile non-linearity yok → sadece lineer ayrım kapasitesi. 128'lik ara katman ReLU ile non-lineer karar sınırı oluşturur.
 
 ### Blok 7 — Output (logits)
+
 - 2 logit, **softmax veya sigmoid uygulanmamış**. CrossEntropyLoss içinde `log_softmax + NLL` gizli; uygulamada softmax çift uygulanırsa kalibrasyon bozulur.
 - Olasılık skorunu (`P(Hemorrhage)`) elde etmek için inferansta `F.softmax(logits, dim=1)[:, 1]` kullanıyoruz (arayüzde ve threshold analizinde).
 
