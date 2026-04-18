@@ -744,7 +744,9 @@ SE her ResidualSE'in içine gömülü, ayrıca `SEBlock` sınıfı olarak tanım
 - **Olası soru — "GAP yerine GMP (max) kullansan?"** GMP en güçlü aktivasyona odaklanır (yerel); GAP genel sinyali tutar. Sınıflandırmada GAP daha stabildir; GMP gürültüye duyarlı. Bazı projeler ikisini concat eder; biz sade tuttuk.
 
 ### Blok 6 — Classifier Head (FC stack)
+
 `Linear(256→128) → LayerNorm → ReLU → Dropout(0.4) → Linear(128→2)`
+
 - **LayerNorm neden BatchNorm değil?** Classifier'da batch=8 ile çalışıyoruz, BN küçük batch'te varyans tahmini gürültülü olur. LayerNorm batch boyundan bağımsız → daha stabil.
 - **Dropout 0.4**: classifier en agresif overfit eden katman. 0.4 ImageNet pretrained modellerde de yaygın.
 - **Olası soru — "Direkt 256→2 yapsan?"** Tek FC ile non-linearity yok → sadece lineer ayrım kapasitesi. 128'lik ara katman ReLU ile non-lineer karar sınırı oluşturur.
