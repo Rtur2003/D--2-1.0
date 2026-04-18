@@ -25,22 +25,28 @@ from config import WEB_CRAWLED_DIR
 # kontrol edildi. Dosyalari kucuk PNG formatinda kaydederiz.
 SOURCES = [
     {
-        "name": "01_normal_brain_ct.png",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/4/4e/CT_of_normal_brain%2C_axial_-_average_intensity_projection.jpg",
-        "expected_label": "normal",
-        "source": "Wikimedia Commons - CT of normal brain (axial AIP)",
-    },
-    {
-        "name": "02_normal_brain_axial.png",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/8/8f/Computed_tomography_of_human_brain_-_large.png",
-        "expected_label": "normal",
-        "source": "Wikimedia Commons - Computed tomography of human brain",
-    },
-    {
-        "name": "03_subdural_hematoma.png",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/4/47/Subduralandherniation.PNG",
+        "name": "01_subdural_hematoma.png",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/5/5e/Subduralandherniation.PNG",
         "expected_label": "hemorrhage",
         "source": "Wikimedia Commons - Subdural hematoma with herniation",
+    },
+    {
+        "name": "02_intracerebral_bleed.png",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/d/de/Bleedintocysticmass.png",
+        "expected_label": "hemorrhage",
+        "source": "Wikimedia Commons - Bleed into cystic mass (intracranial)",
+    },
+    {
+        "name": "03_normal_brain_axial1.png",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/0/0b/CT_of_a_normal_brain%2C_axial_1.png",
+        "expected_label": "normal",
+        "source": "Wikimedia Commons - CT of normal brain, axial slice 1",
+    },
+    {
+        "name": "04_normal_brain_axial2.png",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/7/77/CT_of_a_normal_brain%2C_axial_2.png",
+        "expected_label": "normal",
+        "source": "Wikimedia Commons - CT of normal brain, axial slice 2",
     },
 ]
 
