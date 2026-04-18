@@ -10,7 +10,9 @@
       "WebFetch(domain:ieeexplore.ieee.org)",
       "Bash(python src/download_web_samples.py)",
       "WebFetch(domain:commons.wikimedia.org)",
-      "Bash(python main.py --webcrawl)"
+      "Bash(python main.py --webcrawl)",
+      "Bash(rm -f results/cv_results.json results/cv_summary.png)",
+      "Bash(python main.py --cv)"
     ]
   }
 }

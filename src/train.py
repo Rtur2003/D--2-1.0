@@ -1,5 +1,5 @@
 # =========================================================================
-# TRAINING (Eğitim) - v2: İleri Teknikler
+# TRAINING (Eğitim)
 # =========================================================================
 # Her iki CNN modeli için eğitim pipeline'ı.
 #
@@ -484,7 +484,7 @@ def run_training(augment: bool = True) -> None:
         print("=" * 70)
     else:
         print("\n" + "=" * 70)
-        print("MODEL 2: Custom CNN v2 (Residual + SE + MultiScale)")
+        print("MODEL 2: Custom CNN (Residual + SE + MultiScale)")
         print("=" * 70)
 
         custom_cnn = get_custom_cnn()
@@ -516,7 +516,7 @@ def run_training(augment: bool = True) -> None:
             use_cosine=True,
         )
         plot_training_curves(
-            custom_history, "Custom CNN v2",
+            custom_history, "Custom CNN",
             save_path=str(RESULTS_DIR / "custom_cnn_training_curves.png")
         )
 

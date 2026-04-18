@@ -43,7 +43,11 @@ import matplotlib.pyplot as plt
 
 
 N_FOLDS = 5
-QUICK_EPOCHS = 10
+# Her model icin ayri epoch sayisi:
+#   - ConvNeXt pretrained → 10 epoch yeterli
+#   - Custom CNN sifirdan → daha cok epoch gerekli, aksi halde underfit
+EPOCHS_PER_MODEL = {"convnext": 10, "custom_cnn": 20}
+LAST_K_AVG = 3  # Selection bias yok: son K epoch'un ortalamasi raporlanir
 BATCH_SIZE = 8
 
 
@@ -61,7 +65,11 @@ def _split_test_first(seed: int = RANDOM_SEED):
 
 
 def _train_quick(model_fn, train_paths, train_labels, val_paths, val_labels,
-                 mean, std, epochs: int = QUICK_EPOCHS) -> Dict:
+                 mean, std, epochs: int) -> Dict:
+    """
+    Sabit epoch sayisinda egitim + son LAST_K_AVG epoch'un ortalama
+    metriklerini raporlar. Best-on-val secimi YAPILMAZ → selection bias yok.
+    """
     set_seed(RANDOM_SEED)
 
     tr_tf = get_transforms(mean, std, is_train=True, augment=True)
@@ -80,17 +88,12 @@ def _train_quick(model_fn, train_paths, train_labels, val_paths, val_labels,
     criterion = nn.CrossEntropyLoss(label_smoothing=0.05)
     optimizer = optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-4)
 
-    best_loss = float("inf")
-    best_acc = 0.0
-    best_f1 = 0.0
-    best_recall = 0.0
-
+    epoch_log = []  # her epoch'un metrigi
     for ep in range(1, epochs + 1):
         train_one_epoch(model, tr_loader, criterion, optimizer, DEVICE,
                         use_mixup=False, max_grad_norm=1.0)
         val_loss, val_acc = validate(model, va_loader, criterion, DEVICE)
 
-        # F1 ve recall
         model.eval()
         all_p, all_t = [], []
         with torch.no_grad():
@@ -100,47 +103,65 @@ def _train_quick(model_fn, train_paths, train_labels, val_paths, val_labels,
                 all_t.extend(y.numpy())
         f1 = f1_score(all_t, all_p, average="weighted")
         rec = recall_score(all_t, all_p, average="weighted")
+        epoch_log.append({"loss": val_loss, "acc": val_acc,
+                          "f1": f1, "recall": rec})
 
-        if val_loss < best_loss:
-            best_loss = val_loss
-            best_acc = val_acc
-            best_f1 = f1
-            best_recall = rec
+    # Son LAST_K_AVG epoch'un ortalamasi (egitim dengesinde olunca)
+    tail = epoch_log[-LAST_K_AVG:]
+    return {
+        "acc": float(np.mean([e["acc"] for e in tail])),
+        "f1": float(np.mean([e["f1"] for e in tail])),
+        "recall": float(np.mean([e["recall"] for e in tail])),
+        "loss": float(np.mean([e["loss"] for e in tail])),
+        "epochs_run": epochs,
+        "tail_window": LAST_K_AVG,
+    }
 
-    return {"acc": best_acc, "f1": best_f1, "recall": best_recall, "loss": best_loss}
 
-
-def run_cv(n_folds: int = N_FOLDS, epochs: int = QUICK_EPOCHS) -> Dict:
-    """5-fold CV her iki model icin."""
+def run_cv(n_folds: int = N_FOLDS) -> Dict:
+    """5-fold CV her iki model icin (per-model epoch sayisi)."""
     train_pool_df, _test_df = _split_test_first()
     paths = train_pool_df["image_path"].values
     labels = train_pool_df["label"].values
 
-    print(f"\n[CV] Stratified {n_folds}-Fold CV  ·  pool={len(paths)}  ·  epochs/fold={epochs}")
+    print(
+        f"\n[CV] Stratified {n_folds}-Fold CV  ·  pool={len(paths)}"
+        f"  ·  ConvNeXt {EPOCHS_PER_MODEL['convnext']} ep"
+        f"  ·  CustomCNN {EPOCHS_PER_MODEL['custom_cnn']} ep"
+        f"  ·  son {LAST_K_AVG} ep ortalama"
+    )
 
-    skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=RANDOM_SEED)
+    skf = StratifiedKFold(
+        n_splits=n_folds, shuffle=True, random_state=RANDOM_SEED
+    )
 
-    results = {"convnext": [], "custom_cnn": []}
+    results: Dict[str, list] = {"convnext": [], "custom_cnn": []}
 
     for fold, (tr_idx, va_idx) in enumerate(skf.split(paths, labels), start=1):
-        tr_paths, va_paths = paths[tr_idx].tolist(), paths[va_idx].tolist()
-        tr_labels, va_labels = labels[tr_idx].tolist(), labels[va_idx].tolist()
+        tr_paths = paths[tr_idx].tolist()
+        va_paths = paths[va_idx].tolist()
+        tr_labels = labels[tr_idx].tolist()
+        va_labels = labels[va_idx].tolist()
 
-        print(f"\n[CV] Fold {fold}/{n_folds}  train={len(tr_paths)}  val={len(va_paths)}")
+        print(f"\n[CV] Fold {fold}/{n_folds}"
+              f"  train={len(tr_paths)}  val={len(va_paths)}")
 
-        # Stats sadece bu fold'un train'inden
         mean, std = compute_train_statistics(tr_paths)
 
         for name, model_fn in [
             ("convnext", lambda: get_convnext_model(pretrained=True)),
             ("custom_cnn", get_custom_cnn),
         ]:
-            print(f"  [CV] {name}")
-            res = _train_quick(model_fn, tr_paths, tr_labels, va_paths, va_labels,
-                               mean, std, epochs=epochs)
+            ep = EPOCHS_PER_MODEL[name]
+            print(f"  [CV] {name}  (epochs={ep})")
+            res = _train_quick(
+                model_fn, tr_paths, tr_labels, va_paths, va_labels,
+                mean, std, epochs=ep,
+            )
             res["fold"] = fold
             results[name].append(res)
-            print(f"    acc={res['acc']:.4f}  f1={res['f1']:.4f}  recall={res['recall']:.4f}")
+            print(f"    acc={res['acc']:.4f}  f1={res['f1']:.4f}"
+                  f"  recall={res['recall']:.4f}  loss={res['loss']:.4f}")
 
     # Ozet
     summary = {}
