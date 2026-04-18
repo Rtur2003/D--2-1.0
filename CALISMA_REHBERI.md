@@ -770,6 +770,73 @@ SE her ResidualSE'in içine gömülü, ayrıca `SEBlock` sınıfı olarak tanım
 
 ---
 
+## 11.5 ConvNeXt-Tiny — Blok Blok Mimari Anlatımı (Savunma için)
+
+> Dosya: `src/pretrained_model.py` (timm `convnext_tiny` ile yüklenir).
+> Toplam parametre: ~28.6 M. ImageNet-1k pretrained, progressive unfreezing ile fine-tune.
+
+ConvNeXt (Liu et al., CVPR 2022) ResNet'in modernize edilmiş versiyonudur — Vision Transformer'ların mimari kararlarını CNN'e geri taşır (büyük kernel, layer norm, GELU, daha az aktivasyon).
+
+### Blok 1 — Stem (Patchify)
+
+- **Yapı:** `Conv 4×4 stride 4 → LayerNorm`. Tek vuruşta 224×224 → 56×56'ya iner (4× downsampling).
+- **Neden "patchify"?** ViT'in patch embedding'inden ödünç. Ardışık conv yerine non-overlapping 4×4 patch'ler — her patch bağımsız token gibi başlar.
+- **Olası soru — "Klasik ResNet stem'inden farkı?"** ResNet stem: 7×7 stride 2 + maxpool stride 2. ConvNeXt stem: tek conv 4×4 stride 4. Daha az adım, daha agresif downsampling, ama hesaplama ucuz çünkü kanal az (96).
+
+### Blok 2 — 4 Stage (depths = [3, 3, 9, 3], toplam 18 ConvNeXt block)
+
+Her stage spatial boyutu yarıya, kanal sayısını 2×'e taşır. Stage öncesi downsample katmanı: `LayerNorm → Conv 2×2 stride 2`.
+
+| Stage | Kanal | Spatial | Block sayısı |
+|-------|-------|---------|--------------|
+| 1 | 96  | 56×56 | 3 |
+| 2 | 192 | 28×28 | 3 |
+| 3 | 384 | 14×14 | **9** (gövdenin ana yükü) |
+| 4 | 768 | 7×7   | 3 |
+
+**Stage 3'te 9 blok niye?** ResNet'te de en derin temsil orta-üst katmanlarda gerçekleşir; deneysel olarak [3,3,9,3] en iyi accuracy/parametre dengesini verdi (orijinal makale Tablo 9).
+
+### Blok 3 — ConvNeXt Block (her stage'de tekrarlanan birim)
+
+Bir bloğun içi (giriş = çıkış kanalı C):
+
+```
+x_in (B, C, H, W)
+  │
+  ├─ Depthwise Conv 7×7 (groups=C)        ← geniş receptive field, ucuz
+  ├─ LayerNorm  (channels-last)
+  ├─ Pointwise Conv 1×1: C → 4C           ← MLP genişletme (ViT FFN benzeri)
+  ├─ GELU                                  ← tek aktivasyon (ResNet'te 3 ReLU vardı)
+  ├─ Pointwise Conv 1×1: 4C → C           ← MLP daraltma
+  ├─ Layer Scale (γ * x, γ ~ 1e-6 init)   ← küçük başla, gradyen stabilizasyon
+  └─ DropPath (Stochastic Depth)
+  +
+x_in   (residual shortcut)
+```
+
+- **Depthwise 7×7:** Kanal başına bağımsız büyük kernel. Klasik conv'a göre maliyet C² yerine C kat daha az; aynı receptive field.
+- **LayerNorm (BatchNorm değil):** Batch boyundan bağımsız, Transformer'larda standart.
+- **4× expansion + GELU:** Transformer FFN ile aynı: bir geniş ara katman, sonra daralt. Depthwise + 1×1 + 1×1 sırası "inverted bottleneck" (MobileNet/ConvNeXt ortak).
+- **Layer Scale:** Her bloğun katkısını γ ile ölçekler; başlangıçta γ ≈ 1e-6 → eğitim başında blok neredeyse identity → derin ağ stabil başlar.
+- **DropPath (Stochastic Depth):** Eğitimde rastgele bütün bloğu atlar (residual ile shortcut kalır). Dropout'un blok seviyesi versiyonu.
+
+### Blok 4 — Head (sınıflandırma katmanı)
+
+- `Global Average Pool → LayerNorm → Linear(768 → num_classes)`
+- timm `create_model(num_classes=2)` çağrısı son `Linear` katmanı 1000 → 2'ye değiştiriyor; geri kalan ImageNet ağırlıkları korunuyor.
+- Bizim kullanımda: `pretrained_model.py::get_convnext_model(pretrained=True)` → 28.6 M parametre, hepsi (head dahil) açık olarak fine-tune.
+
+### Progressive Unfreezing Stratejisi (eğitim sırası)
+
+1. **Faz 1 (warmup, ~5 epoch):** Sadece head eğitilir, backbone donuk. Yeni veri için classifier hızla adapte olur. ImageNet'in genel feature'larına zarar vermeden başlama.
+2. **Faz 2 (full fine-tune, ~30 epoch):** Tüm ağ açılır, küçük LR (1e-4) ile fine-tune. Catastrophic forgetting riskini düşürür (Howard & Ruder, ULMFiT 2018).
+
+### Tek bakışta özet — "Hoca: Bu modeli neden seçtin, başka neler vardı?"
+
+> "ConvNeXt-Tiny: ResNet'in modern karşılığı, ViT performansına yakın ama saf CNN olduğu için Grad-CAM gibi görsel açıklama araçları doğal çalışır. Tiny varyantı 28M parametre — 200 örneklik veriye uygun (Base 89M, Large 198M overfit yapardı). Alternatif olarak ResNet-50 (25M) veya EfficientNet-B0 (5M) düşünülebilirdi; ConvNeXt'i seçtik çünkü 2022 sonrası tüm güncel medikal görüntü makalelerinde baseline olarak görüyoruz ve `timm` ile tek satırda yüklenebiliyor."
+
+---
+
 ## 12. SUNUM HAZIRLIK ÖZET
 
 **Slayt Akışı Önerisi (15 dk):**
