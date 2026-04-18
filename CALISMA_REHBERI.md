@@ -759,10 +759,12 @@ SE her ResidualSE'in içine gömülü, ayrıca `SEBlock` sınıfı olarak tanım
 ---
 
 ### Tek bakışta özet — "Hoca: Modelin kaç bloktan oluşuyor?"
+
 > "1 stem + 1 multi-scale + 3 residual-SE + 1 GAP + 1 classifier = **7 fonksiyonel aşama**.
 > Parametre ~1.29M; giriş 224×224×3, çıkış 2 logit. Her aşamanın görevi: stem geniş bağlamı yakalar, multi-scale farklı kanama boyutlarını paralel inceler, üç residual-SE kademeli olarak abstraksiyonu artırırken kanal-attention ile önemli feature'ları seçer, GAP spatial bilgiyi özetler, classifier kararı verir."
 
 ### Tek bakışta özet — "Hoca: ConvNeXt-Tiny kaç bloktan oluşuyor?"
+
 > "Standart ConvNeXt-Tiny: 1 stem (Conv 4×4 stride 4) + 4 stage (depths = [3, 3, 9, 3]) toplam **18 ConvNeXt block** + downsampling katmanları + GAP + LayerNorm + classifier.
 > Her blok: depthwise 7×7 → LayerNorm → pointwise 1×1 (4× expansion) → GELU → pointwise 1×1 + DropPath. Toplam ~28M parametre. ImageNet-1k pretrained ağırlıkları ile başlatıldı, progressive unfreezing ile fine-tune edildi (önce sadece classifier ~5 epoch, sonra full backbone)."
 
