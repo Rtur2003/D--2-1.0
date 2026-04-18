@@ -25,20 +25,20 @@ from config import WEB_CRAWLED_DIR
 # kontrol edildi. Dosyalari kucuk PNG formatinda kaydederiz.
 SOURCES = [
     {
-        "name": "01_normal_brain_ct_axial.png",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/Computed_tomography_of_human_brain_-_large.png/512px-Computed_tomography_of_human_brain_-_large.png",
+        "name": "01_normal_brain_ct.png",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/4/4e/CT_of_normal_brain%2C_axial_-_average_intensity_projection.jpg",
+        "expected_label": "normal",
+        "source": "Wikimedia Commons - CT of normal brain (axial AIP)",
+    },
+    {
+        "name": "02_normal_brain_axial.png",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/8/8f/Computed_tomography_of_human_brain_-_large.png",
         "expected_label": "normal",
         "source": "Wikimedia Commons - Computed tomography of human brain",
     },
     {
-        "name": "02_normal_ct_axial_slice.png",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Computed_tomography_of_human_brain_%28large_version%29_-_120.png/512px-Computed_tomography_of_human_brain_%28large_version%29_-_120.png",
-        "expected_label": "normal",
-        "source": "Wikimedia Commons - Brain CT axial slice",
-    },
-    {
-        "name": "03_subdural_hematoma_ct.png",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Subduralandherniation.PNG/512px-Subduralandherniation.PNG",
+        "name": "03_subdural_hematoma.png",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/4/47/Subduralandherniation.PNG",
         "expected_label": "hemorrhage",
         "source": "Wikimedia Commons - Subdural hematoma with herniation",
     },
@@ -54,7 +54,13 @@ def download_one(item: dict) -> bool:
     try:
         req = urllib.request.Request(
             item["url"],
-            headers={"User-Agent": "Mozilla/5.0 (Educational/BM480)"},
+            headers={
+                "User-Agent": (
+                    "BM480-Edu/1.0 (university coursework; "
+                    "contact: hasannarthurrr@gmail.com) Python-urllib"
+                ),
+                "Accept": "image/png,image/jpeg,image/*,*/*;q=0.8",
+            },
         )
         with urllib.request.urlopen(req, timeout=20) as resp:
             data = resp.read()
